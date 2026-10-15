@@ -19,7 +19,7 @@ Skill version: <metadata.version> · Ledger: `.agent-team/<job>/ledger.jsonl` ·
 - <every unit | sampled <n>%: why the acceptance check was decisive enough>
 
 ## Cost
-- Worker calls <n> · checks <n> · reviewer calls <n> · against the estimate of <n>
+- Worker calls <n> · reviewer calls <n> · checks <n> · against the expected <n> agent calls
 
 ## Look at by hand
 - Random passed unit to spot-check: <id and path>

@@ -10,7 +10,7 @@
 - Commit (or timestamp and listing) when this spec was written: <sha>
 
 ## Units
-| id | wave | inputs for this unit |
+| id | wave | inputs for this unit (wave 2+: which earlier units' outputs, read from the job folder) |
 |---|---|---|
 | <unit-1> | 1 | <e.g. language: de; search term: "Raumplaner"> |
 | <unit-2> | 1 | <...> |
@@ -26,7 +26,8 @@ Unit size: <what one unit is; group tiny items so one unit is about 5 to 20 minu
 
 ## Output
 - Mode: <A. new files | B. staged edit | C. fragment and merge>
-- Path per unit: <e.g. `content/pages/<unit-id>.json` | `.agent-team/<job>/staging/<unit-id>/…` | `.agent-team/<job>/fragments/<unit-id>.json`>
+- Path per unit (always inside the job folder, absolute): <`/abs/.agent-team/<job>/out/<unit-id>/…` | `/abs/.agent-team/<job>/staging/<unit-id>/…` | `/abs/.agent-team/<job>/fragments/<unit-id>.json`>
+- Final location at landing: <where the coordinator moves or applies it>
 - Format: <schema, file type, or exact structure>
 - Limits: <e.g. title ≤ 60 characters, three steps, four or more FAQ entries, image 1280×714 WebP ≤ 200 KB>
 - Merge script (mode C only): `<command>`; deterministic, refuses duplicates.
@@ -34,11 +35,15 @@ Unit size: <what one unit is; group tiny items so one unit is about 5 to 20 minu
 
 ## Allowed commands for workers
 - <e.g. none | `pnpm content check <path>` | `npx vitest run <file>`>
-- Anything not listed is not allowed. Caches or snapshots a listed command writes: <where, and that they are expected>
+- Anything not listed is not allowed. Caches, coverage or snapshots a listed command writes: <paths; the changed-files check ignores only these>
+- These commands may run generated code: they run without production secrets and, where possible, without network.
+
+## Workspace for workers
+- <same workspace | isolated worktree or copy per worker: groundwork and dependencies copied in, outputs copied out before cleanup>
 
 ## Acceptance check (per unit)
 - Command: `<exact command that passes or fails one unit>`
-- Runs: <in place | per-unit copy | per batch>
+- Runs: <job folder | per-unit copy | per batch | set-level only (codemods)>
 - Proven on <date>: a good example passed, a broken one failed: <yes, with outputs>
 
 ## Set-level check (at landing)
@@ -50,9 +55,10 @@ Unit size: <what one unit is; group tiny items so one unit is about 5 to 20 minu
 3. <Does it use this unit's own term where a reader would expect it?>
 4. <...>
 - Review: <every unit | random sample of <n>% (only when the acceptance check fully decides correctness)>
+- Binary outputs: <the reviewer can view this file type | human sample instead>
 
 ## External services
-- <none | the coordinator calls <service>; workers only prepare inputs | workers run `<pre-approved script>` and never see its credential>
+- <none | workers run `<pre-approved script>` and never see its credential (the default at scale) | the coordinator calls <service> for a handful of units>
 
 ## Never
 - Run git, publish, deploy, open a pull request, or push anywhere.
@@ -68,4 +74,5 @@ Unit size: <what one unit is; group tiny items so one unit is about 5 to 20 minu
 - <e.g. halt if any output names a price other than the one in the facts>
 
 ## Estimate
-- Units <n> × (worker + check + reviewer) × up to 3 attempts = at most <n> agent calls; expected about <n>.
+- Expected agent calls: units <n> × (1 worker + reviewers for the sampled share) × about 1.3 for fixes = <n>.
+- The run halts if agent calls exceed 1.5 × this expected count.
