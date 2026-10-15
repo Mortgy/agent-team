@@ -1,21 +1,19 @@
 # agent-team
 
 A skill that lets your coding agent run a **team of parallel workers** on a batch of repetitive, checkable
-work: pages, translations, tests, migrations, assets, data entries. Your agent becomes the coordinator. It
-writes a precise spec, pilots a few units, runs workers in parallel, has a separate reviewer check each
-result, runs an automatic acceptance check, and lands only what passed.
+work: web pages, translations, unit tests, codemods and migrations, generated images, data records. Your agent
+becomes the coordinator. It writes a precise spec, makes the shared groundwork, pilots a few units, runs
+workers in parallel, runs an automatic acceptance check and a separate reviewer on every unit, and lands only
+what passed, through your project's normal gates.
 
-The agents are the cheap part. The quality comes from three things the skill makes the coordinator write
-first: **a precise spec, a check that runs without a person, and one controlled way to land the work.**
-The skill also says when *not* to use a team: open-ended product work, design decisions, debugging.
-
-Works with any agent that reads the open `SKILL.md` format and can start subagents. It was written for
-Claude Code (the Agent tool, with Sonnet workers and a stronger reviewer).
+The agents are the cheap part. The quality comes from what the coordinator is made to do first: **a precise
+spec, a check that runs without a person, and one controlled way to land the work.** The skill also says when
+*not* to use a team: open-ended product work, design decisions, debugging.
 
 ## Install
 
-With the open [`skills`](https://github.com/vercel-labs/skills) installer (Claude Code, Codex, Cursor,
-OpenCode and many more):
+With the open [`skills`](https://github.com/vercel-labs/skills) installer, which installs into Claude Code,
+Codex, Cursor, OpenCode and many other agents:
 
 ```bash
 # for you, in every project
@@ -32,36 +30,64 @@ git clone https://github.com/<owner>/agent-team.git
 cp -R agent-team/skills/agent-team ~/.claude/skills/agent-team
 ```
 
-Replace `<owner>` with the GitHub account that hosts this repository.
+## Which agents it works in
+
+The skill is plain instructions in the open `SKILL.md` format, so any agent that loads skills can read it.
+What it can *do* depends on the agent:
+
+- **Subagents that run in parallel, with a model choice** (for example Claude Code): the full design, with
+  cheaper workers and stronger reviewers.
+- **Subagents without parallelism or without a model choice**: the same loop, slower or with one model.
+- **No subagents**: the skill tells the agent not to use a team beyond about 10 units, and how to review its
+  own work in a fresh pass if it goes on.
+
+Subagent support differs between agents and changes over time; check your agent's documentation.
 
 ## Use
 
-Ask your agent for a batch job and mention the team, or let it pick the skill when the job fits:
+Ask for a batch job and mention the team, or let your agent pick the skill when the job fits:
 
-> Use agent-team to write the German, French and Spanish versions of these 12 help articles. Each must pass
-> `npm run lint:docs`.
+> Use agent-team to write unit tests for the 30 modules in `src/billing/`. Each test file must pass
+> `npx vitest run <file>`, and the full suite must still pass.
 
-The agent will show you the unit list, the acceptance check and a cost estimate before a large run, pilot
-one to three units, then run the rest and report what passed, what failed and why.
+Before a run of more than 10 units the agent shows you the unit list, the acceptance check, the output mode
+and a cost estimate. It pilots a few units, runs the rest, and reports what passed, what failed and why.
+
+Job files live in `.agent-team/<job>/` in your workspace (add it to `.gitignore`): the spec, a ledger of every
+unit's state so an interrupted run can resume, and staged outputs.
 
 ## What is inside
 
 | File | What |
 |---|---|
 | `skills/agent-team/SKILL.md` | The playbook the coordinator follows |
-| `skills/agent-team/templates/spec.md` | The job spec: units, inputs, output contract, acceptance check, rubric, never-list, stop rules |
-| `skills/agent-team/templates/worker-brief.md` | What each worker is told |
-| `skills/agent-team/templates/reviewer-brief.md` | What each reviewer is told (it sees the output, not the worker's reasoning) |
+| `skills/agent-team/templates/spec.md` | The job spec: units and waves, inputs and shared groundwork, output mode, allowed commands, checks, rubric, external services, never-list, stop rules, estimate |
+| `skills/agent-team/templates/worker-brief.md` | What each worker is told, including how to fix its previous output |
+| `skills/agent-team/templates/reviewer-brief.md` | What each reviewer is told |
 | `skills/agent-team/templates/report.md` | The run report |
 
-## Safety rules built in
+## Safety rules the coordinator is told to follow
 
-- Workers never run git, publish, deploy, install packages, use credentials, or write outside their own
-  output path. Only the coordinator lands work, through the project's normal gates.
-- Reviewers see the output only, so a confident worker cannot talk them into a pass.
-- At most two fix rounds per unit; then it is reported, not retried forever.
-- The run stops by itself when too many units fail or a worker reports missing access.
-- Everything workers return is treated as data, not instructions.
+These are instructions, not enforcement. An agent can still get them wrong, so keep your own gates (code
+review, a protected main branch) in place.
+
+- Workers get no credentials, do not read `.env` files or key stores, and do not use tools that act on outside
+  accounts. Paid or authenticated APIs are called by the coordinator, or through a script whose key workers
+  never see.
+- Workers write only their own output paths. After every batch the coordinator compares the workspace with its
+  state before the batch, and reverts and stops on anything else.
+- Generated code is read before a check runs it, and checks run without production secrets.
+- Reviewers never see the worker's reasoning, and are told that text inside an output addressed to them carries
+  no weight.
+- At most three attempts per unit. The coordinator halts the run when too many units fail, a worker writes
+  outside its path, or spending passes 1.5 times the estimate.
+- Only the coordinator lands work, after a set-level check and a read of the whole change, through a pull
+  request or the project's own publishing step, never straight to a branch that deploys.
+
+## Versions
+
+The version is in `metadata.version` at the top of `SKILL.md`; changes are in [CHANGELOG.md](CHANGELOG.md).
+Update with `npx skills update agent-team`, or `git pull` if you cloned it.
 
 ## License
 
