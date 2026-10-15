@@ -2,7 +2,7 @@
 name: agent-team
 description: Run a team of parallel AI workers on a batch of repetitive, checkable work (pages, translations, tests, codemods and migrations, generated assets, data records), with an automatic acceptance check and a separate reviewer on every unit, while this session coordinates and alone lands the result. Use when a job splits into roughly 10 or more similar units, each unit needs judgement a plain script cannot supply, AND each result can be verified by a command or a precise yes/no rubric. Do NOT use for open-ended product work, design decisions, debugging, or anything whose correctness only a person can judge.
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
 # Agent team
@@ -58,7 +58,10 @@ not there. Always give workers and reviewers ABSOLUTE paths into it, so they fin
    mode, the check workspace, the allowed commands and the unit size there.
 2. **Shared groundwork.** Anything several units need is made by you before the run and listed under Inputs:
    a glossary for translations, test helpers and fixtures, a migrated base type, a style example, a merge
-   script. Workers never invent shared pieces.
+   script. Workers never invent shared pieces. Point workers at the product's own source of truth for its
+   vocabulary (its translation files, its API names, its style guide), so they never guess a name the product
+   already uses. Check every claim you put in the spec (a language variant, a convention) against the project
+   itself, not your memory: in the first real run, the spec named the wrong variant of a language.
 3. **Prove the check.** Run the acceptance check once on a known-good example and once on a deliberately
    broken one. A check that passes both is not a check.
 4. **Record the base.** Note the current commit (or a timestamp and file listing without version control) in
@@ -93,6 +96,10 @@ Run a few units through the whole loop first: 1 to 3, or about 2% of runs over 1
 hardest variants, not the easiest. Read every pilot output in full yourself. Fix the spec where it was unclear,
 then run the rest. Most failed batches are a spec problem a pilot would have shown.
 
+Read the workers' replies for **contradictions they report in the inputs**: they are usually spec errors, and they
+are the cheapest ones to find. Fix the spec, note the change in the spec itself ("corrected during the pilot"),
+and re-run only the units it affected.
+
 ## 4. Run
 
 Wave by wave, at most your parallel limit at a time. A worker in wave N reads earlier waves' results from their
@@ -116,11 +123,23 @@ job-folder output paths (passed units only), not from the live tree.
 4. **Reviewer.** For units in the review sample (all units, unless the spec allows sampling because the check
    fully decides correctness), start a separate, fresh reviewer with `templates/reviewer-brief.md`: the spec,
    the unit's inputs and the OUTPUT only, never the worker's reply. Use a stronger model than the worker where
-   you can. It returns `pass` or `fix`. Units not in the sample go from `checked` to `passed`.
+   you can. It grades every finding **must** (a rubric question fails: wrong, untrue, broken, off-spec) or
+   **should** (polish), and returns `pass` when no must-finding remains. Units not in the sample go from
+   `checked` to `passed`. Should-findings may go into the next fix if there is one; they never cause one.
+   - **You may overrule a finding** that is wrong (for example it misreads the language, or the rubric
+     over-reached). Record the finding and your reason in the ledger's `last_error`, and correct the spec if the
+     spec caused it. Never overrule to save a fix round when the finding is right.
 5. **Fix loop.** On a failed check or `fix`: move to `fixing` and start a NEW worker for the same unit with the
    previous output's path, the reviewer's fixes and the check's output (the brief tells it to read and correct the
-   existing output). Then check and review again, with a new reviewer. At most **three worker attempts in total**
-   (the first and two fixes); after that, `failed` with the reasons.
+   existing output). Then check and review again, with a new reviewer, given the previous review's
+   must-findings: it confirms each was fixed and looks for new **must**-findings only, not fresh polish (a new
+   reviewer on a whole page always finds something, and the loop never ends). At most **three worker attempts
+   in total** (the first and two fixes); after that, `failed` with the reasons.
+   - **Mechanical corrections.** When the only remaining must-findings are exact, mechanical corrections the
+     reviewer spelled out (a misspelt word, a wrong label, a number), you may apply them yourself instead of
+     spending an attempt or failing the unit: change exactly those strings and nothing else, record each
+     before/after in the ledger, re-run the acceptance check, and do not count it as an attempt. Anything that
+     needs judgement or rewording goes back to a worker.
 
 Rules while running:
 

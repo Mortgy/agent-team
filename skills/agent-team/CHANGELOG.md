@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0 — 2026-10-15
+
+Lessons from the first real run (5 web pages in 5 languages, Claude Code: Sonnet workers, Opus reviewers).
+
+- **Reviewers grade findings `must` or `should`** and pass a unit with no must-findings. A fresh reviewer on each
+  fix round re-read the whole page and raised new polish every time, so the loop would not converge.
+- **Re-reviews after a fix** confirm the earlier must-findings are fixed and look for new must-findings only.
+- **The coordinator may overrule** a wrong finding, recording the finding and the reason in the ledger; twice in
+  the run a finding was wrong (the rubric over-reached once; a grammatical form was misread once).
+- **Workers report contradictions in their inputs**, and the coordinator reads those replies as spec errors. In
+  the run, workers caught two errors in the spec before any reviewer did.
+- **Mechanical corrections**: the coordinator may apply an exact, reviewer-specified correction (a misspelt
+  word, a label, a number) itself, recorded in the ledger, instead of failing a unit whose attempts are used up.
+  In the run, a page's third attempt was otherwise correct but for one misspelt word.
+- **Groundwork includes the product's own vocabulary** (its translation files, API names, style guide), and the
+  coordinator checks spec claims against the project, not memory.
+
 ## 0.3.0 — 2026-10-15
 
 Revised after a second independent review, and per-agent notes added.
