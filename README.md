@@ -17,16 +17,16 @@ Codex, Cursor, OpenCode and many other agents:
 
 ```bash
 # for you, in every project
-npx skills add <owner>/agent-team -g
+npx skills add Mortgy/agent-team -g
 
 # or only for one agent
-npx skills add <owner>/agent-team -g -a claude-code
+npx skills add Mortgy/agent-team -g -a claude-code
 ```
 
 Without the installer, copy the skill folder into your agent's skills folder. For Claude Code:
 
 ```bash
-git clone https://github.com/<owner>/agent-team.git
+git clone https://github.com/Mortgy/agent-team.git
 cp -R agent-team/skills/agent-team ~/.claude/skills/agent-team
 ```
 
